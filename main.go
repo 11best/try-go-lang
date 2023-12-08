@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/11best/try-go-lang/calculator"
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -78,6 +79,7 @@ func main() {
 	}
 	fmt.Printf("result from divide function => %v\n", r)
 
+	generateUUID()
 }
 
 func sayHi(name string) {
@@ -86,4 +88,9 @@ func sayHi(name string) {
 
 func multiTypeReturn() (int, string, bool) {
 	return 123, "hi in func", true
+}
+
+func generateUUID() {
+	id := uuid.New()
+	fmt.Printf("Generated UUID: %s\n", id)
 }
