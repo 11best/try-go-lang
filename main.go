@@ -1,8 +1,9 @@
 package main
 
 import (
-	"calculator/calculator"
 	"fmt"
+
+	"github.com/11best/try-go-lang/calculator"
 )
 
 func main() {
