@@ -21,7 +21,7 @@ func main() {
 	books = append(books, Book{ID: 2, Title: "Patoo", Author: "Papuan"})
 
 	app.Get("/books", getBooks)
-	app.Get("/books:id", getBook)
+	app.Get("/books/:id", getBook)
 
 	app.Listen(":8080")
 }
@@ -32,8 +32,6 @@ func getBooks(c *fiber.Ctx) error {
 
 func getBook(c *fiber.Ctx) error {
 	bookId, err := strconv.Atoi(c.Params("id"))
-
-	print(bookId)
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
