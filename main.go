@@ -1,10 +1,12 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
+	"github.com/joho/godotenv"
 )
 
 type Book struct {
@@ -16,6 +18,10 @@ type Book struct {
 var books []Book
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("load env error")
+	}
+
 	engine := html.New("./views", ".html")
 
 	app := fiber.New(fiber.Config{
@@ -44,13 +50,8 @@ func sayHello(c *fiber.Ctx) error {
 }
 
 func getEnv(c *fiber.Ctx) error {
-	if value, exist := os.LookupEnv("SECRET"); exist {
-		return c.JSON(fiber.Map{
-			"SECRET": value,
-		})
-	}
 
 	return c.JSON(fiber.Map{
-		"SECRET": "default",
+		"SECRET": os.Getenv("SECRET"),
 	})
 }
