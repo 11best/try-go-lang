@@ -48,12 +48,12 @@ func main() {
 
 	app.Post("/login", login)
 
-	// log method and time middleware
-	app.Use(checkMiddleware)
 	// jwt middleware
 	app.Use(jwtware.New(jwtware.Config{
 		SigningKey: []byte(os.Getenv("JWT_SECRET")),
 	}))
+	// log method and time middleware
+	app.Use(checkMiddleware)
 
 	app.Get("/books", getBooks)
 	app.Get("/books/:id", getBook)
@@ -82,8 +82,17 @@ func getEnv(c *fiber.Ctx) error {
 func checkMiddleware(c *fiber.Ctx) error {
 	start := time.Now()
 
-	fmt.Printf("URL: %s, Method: %s, Time: %s\n", c.OriginalURL(), c.Method(), start)
-	return c.Next()
+	user := c.Locals("user").(*jwt.Token) // decrypt jet
+	claims := user.Claims.(jwt.MapClaims)
+
+	if claims["role"] != "admin" {
+		return fiber.ErrUnauthorized
+	}
+
+	fmt.Printf("Role: %s, URL: %s, Method: %s, Time: %s\n",
+		claims["role"], c.OriginalURL(), c.Method(), start)
+
+	return c.Next() // continue
 }
 
 func login(c *fiber.Ctx) error {
