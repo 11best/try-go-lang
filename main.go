@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
 )
@@ -30,11 +32,25 @@ func main() {
 	app.Delete("/books/:id", deleteBook)
 	app.Get("/hello", sayHello)
 
+	app.Get("/config", getEnv)
+
 	app.Listen(":8080")
 }
 
 func sayHello(c *fiber.Ctx) error {
 	return c.Render("index", fiber.Map{
 		"Name": "best",
+	})
+}
+
+func getEnv(c *fiber.Ctx) error {
+	if value, exist := os.LookupEnv("SECRET"); exist {
+		return c.JSON(fiber.Map{
+			"SECRET": value,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"SECRET": "default",
 	})
 }
