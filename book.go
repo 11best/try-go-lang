@@ -6,6 +6,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+func getBooks(c *fiber.Ctx) error {
+	return c.JSON(books)
+}
+
 func getBook(c *fiber.Ctx) error {
 	bookId, err := strconv.Atoi(c.Params("id"))
 

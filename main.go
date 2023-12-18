@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/template/html/v2"
 )
 
 type Book struct {
@@ -13,7 +14,11 @@ type Book struct {
 var books []Book
 
 func main() {
-	app := fiber.New()
+	engine := html.New("./views", ".html")
+
+	app := fiber.New(fiber.Config{
+		Views: engine,
+	})
 
 	books = append(books, Book{ID: 1, Title: "Papuan 101", Author: "Papuan"})
 	books = append(books, Book{ID: 2, Title: "Patoo", Author: "Papuan"})
@@ -23,10 +28,13 @@ func main() {
 	app.Post("/books", createBook)
 	app.Put("/books/:id", updateBook)
 	app.Delete("/books/:id", deleteBook)
+	app.Get("/hello", sayHello)
 
 	app.Listen(":8080")
 }
 
-func getBooks(c *fiber.Ctx) error {
-	return c.JSON(books)
+func sayHello(c *fiber.Ctx) error {
+	return c.Render("index", fiber.Map{
+		"Name": "best",
+	})
 }
