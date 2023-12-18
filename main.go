@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	jwtware "github.com/gofiber/jwt/v2"
 	"github.com/gofiber/template/html/v2"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
 )
 
@@ -45,7 +47,14 @@ func main() {
 	books = append(books, Book{ID: 2, Title: "Patoo", Author: "Papuan"})
 
 	app.Post("/login", login)
+
+	// log method and time middleware
 	app.Use(checkMiddleware)
+	// jwt middleware
+	app.Use(jwtware.New(jwtware.Config{
+		SigningKey: []byte(os.Getenv("JWT_SECRET")),
+	}))
+
 	app.Get("/books", getBooks)
 	app.Get("/books/:id", getBook)
 	app.Post("/books", createBook)
@@ -66,7 +75,7 @@ func sayHello(c *fiber.Ctx) error {
 
 func getEnv(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"SECRET": os.Getenv("SECRET"),
+		"SECRET": os.Getenv("JWT_SECRET"),
 	})
 }
 
@@ -87,7 +96,23 @@ func login(c *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
+	// Create token
+	token := jwt.New(jwt.SigningMethodHS256)
+
+	// Set claims (encrypt)
+	claims := token.Claims.(jwt.MapClaims)
+	claims["email"] = user.Email
+	claims["role"] = "admin"
+	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+
+	// Generate encoded token and send it as response.
+	t, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
 	return c.JSON(fiber.Map{
-		"message": "login success!",
+		"message": "login success",
+		"token":   t,
 	})
 }
