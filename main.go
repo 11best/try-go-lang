@@ -6,8 +6,10 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/11best/try-go-lang/docs"
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v2"
+	"github.com/gofiber/swagger"
 	"github.com/gofiber/template/html/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
@@ -32,6 +34,15 @@ var dummyUser = User{
 
 var books []Book
 
+// @title Book API
+// @description This is a sample server for a book API.
+// @version 1.0
+// @host localhost:8080
+// @BasePath /
+// @schemes http
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("load env error")
@@ -45,6 +56,8 @@ func main() {
 
 	books = append(books, Book{ID: 1, Title: "Papuan 101", Author: "Papuan"})
 	books = append(books, Book{ID: 2, Title: "Patoo", Author: "Papuan"})
+
+	app.Get("/swagger/*", swagger.HandlerDefault) // default
 
 	app.Post("/login", login)
 
