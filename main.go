@@ -2,95 +2,139 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"time"
 
-	"github.com/11best/try-go-lang/calculator"
-	"github.com/google/uuid"
+	_ "github.com/11best/try-go-lang/docs"
+	"github.com/gofiber/fiber/v2"
+	jwtware "github.com/gofiber/jwt/v2"
+	"github.com/gofiber/swagger"
+	"github.com/gofiber/template/html/v2"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/joho/godotenv"
 )
 
+type User struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type Book struct {
+	ID     int    `json:"id"` //`json:id`(metadata) its for fiber to map request and response to struct
+	Title  string `json:"title"`
+	Author string `json:"author"`
+}
+
+// dummy user
+var dummyUser = User{
+	Email:    "email@mail.com",
+	Password: "1234",
+}
+
+var books []Book
+
+// @title Book API
+// @description This is a sample server for a book API.
+// @version 1.0
+// @host localhost:8080
+// @BasePath /
+// @schemes http
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 func main() {
-	// how to decalre variable with default value
-	// if didnt set default value it will set default by auto ex.int = 0, string = "", bool = false
-	var greet_1 string
-	greet_1 = "hello from greet 1"
-
-	var greet_2 string = "hello from greet 2"
-
-	greet_3 := "hello from greet 3"
-
-	fmt.Println(greet_1)
-	fmt.Printf("try to print using %v and %s\n", greet_2, greet_3)
-
-	year := 2000
-	month := 3
-	date := 30
-
-	date_string := fmt.Sprintf("%v / %v / %v", year, month, date)
-	fmt.Printf("display date_string %s\n", date_string)
-
-	// flow control
-	if 2 > 1 {
-		fmt.Print("2 > 1, its true!")
-	} else {
-		fmt.Print("impossible ja")
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("load env error")
 	}
 
-	for i := 0; i < 5; i++ { // if didnt set condition its mean while(true)
-		fmt.Printf("i in for loop %v\n", i)
-	}
+	engine := html.New("./views", ".html")
 
-	switch year {
-	case 1999:
-		fmt.Println("im not born yet")
-	case 2000:
-		fmt.Println("birth!!")
-	}
+	app := fiber.New(fiber.Config{
+		Views: engine,
+	})
 
-	// vector variable
-	// array => fixed lenge
-	var cats [2]string
-	cats[0] = "platoo"
-	cats[1] = "pop"
+	books = append(books, Book{ID: 1, Title: "Papuan 101", Author: "Papuan"})
+	books = append(books, Book{ID: 2, Title: "Patoo", Author: "Papuan"})
 
-	fruits := [3]string{"mamuang", "mango", "mangie"}
+	app.Get("/swagger/*", swagger.HandlerDefault) // default
 
-	fmt.Printf("cats length is %v, fruits length is %v\n", len(cats), len(fruits))
+	app.Post("/login", login)
 
-	// slice => like array but dynamic size
-	var snacks []string
-	snacks = append(snacks, "cookies")
-	snacks = append(snacks, "jelly")
+	// jwt middleware
+	app.Use(jwtware.New(jwtware.Config{
+		SigningKey: []byte(os.Getenv("JWT_SECRET")),
+	}))
+	// log method and time middleware
+	app.Use(checkMiddleware)
 
-	drinks := []string{"coke", "coffee", "tea", "ovaltin"}
+	app.Get("/books", getBooks)
+	app.Get("/books/:id", getBook)
+	app.Post("/books", createBook)
+	app.Put("/books/:id", updateBook)
+	app.Delete("/books/:id", deleteBook)
+	app.Get("/hello", sayHello)
 
-	// using loop with vector
-	for i := 0; i < len(snacks); i++ {
-		fmt.Printf("snack => %v\n", snacks[i])
-	}
+	app.Get("/config", getEnv)
 
-	for index, drink := range drinks {
-		fmt.Printf("drink => %v index: %v\n", drink, index)
-	}
-
-	// using function
-	r, err := calculator.Divide(10, 5)
-	if (err) != nil {
-		// handle error
-		panic(err) // can use panic() or os.Exit(1)
-	}
-	fmt.Printf("result from divide function => %v\n", r)
-
-	generateUUID()
+	app.Listen(":7777")
 }
 
-func sayHi(name string) {
-	fmt.Printf("hihi ja, khun %v\n", name)
+func sayHello(c *fiber.Ctx) error {
+	return c.Render("index", fiber.Map{
+		"Name": "best",
+	})
 }
 
-func multiTypeReturn() (int, string, bool) {
-	return 123, "hi in func", true
+func getEnv(c *fiber.Ctx) error {
+	return c.JSON(fiber.Map{
+		"SECRET": os.Getenv("JWT_SECRET"),
+	})
 }
 
-func generateUUID() {
-	id := uuid.New()
-	fmt.Printf("Generated UUID: %s\n", id)
+func checkMiddleware(c *fiber.Ctx) error {
+	start := time.Now()
+
+	user := c.Locals("user").(*jwt.Token) // decrypt jet
+	claims := user.Claims.(jwt.MapClaims)
+
+	if claims["role"] != "admin" {
+		return fiber.ErrUnauthorized
+	}
+
+	fmt.Printf("Role: %s, URL: %s, Method: %s, Time: %s\n",
+		claims["role"], c.OriginalURL(), c.Method(), start)
+
+	return c.Next() // continue
+}
+
+func login(c *fiber.Ctx) error {
+	user := new(User)
+	if err := c.BodyParser(user); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+
+	if user.Email != dummyUser.Email || user.Password != dummyUser.Password {
+		return fiber.ErrUnauthorized
+	}
+
+	// Create token
+	token := jwt.New(jwt.SigningMethodHS256)
+
+	// Set claims (encrypt)
+	claims := token.Claims.(jwt.MapClaims)
+	claims["email"] = user.Email
+	claims["role"] = "admin"
+	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+
+	// Generate encoded token and send it as response.
+	t, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "login success",
+		"token":   t,
+	})
 }
