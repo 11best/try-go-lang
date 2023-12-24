@@ -41,10 +41,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	print("Connection Database Successful!")
+	print("Connection Database Successful!\n")
 
-	err = deleteProduct(3)
-	fmt.Println("delete successful")
+	products, err := getProducts()
+	fmt.Println("successful", products)
 
 }
 
@@ -99,4 +99,29 @@ func deleteProduct(id int) error {
 	)
 
 	return err
+}
+
+func getProducts() ([]Product, error) {
+	rows, err := db.Query("SELECT id, name, price from products")
+
+	if err != nil {
+		return nil, err
+	}
+
+	var products []Product
+
+	for rows.Next() {
+		var p Product
+		err := rows.Scan(&p.ID, &p.Name, &p.Price)
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return products, nil
 }
