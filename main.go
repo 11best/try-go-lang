@@ -43,8 +43,8 @@ func main() {
 
 	print("Connection Database Successful!")
 
-	product, err := updateProduct(3, &Product{Name: "update go 2", Price: 666})
-	fmt.Println("update successful", product)
+	err = deleteProduct(3)
+	fmt.Println("delete successful")
 
 }
 
@@ -78,7 +78,7 @@ func getProduct(id int) (Product, error) {
 func updateProduct(id int, product *Product) (Product, error) {
 	var p Product
 	row := db.QueryRow(
-		"UPDATE public.products SET name=$2, price=$3 WHERE id=$1 RETURNING id, name, price;",
+		"UPDATE products SET name=$2, price=$3 WHERE id=$1 RETURNING id, name, price;",
 		id,
 		product.Name,
 		product.Price,
@@ -90,4 +90,13 @@ func updateProduct(id int, product *Product) (Product, error) {
 	}
 
 	return p, nil
+}
+
+func deleteProduct(id int) error {
+	_, err := db.Exec(
+		"DELETE FROM products WHERE id=$1;",
+		id,
+	)
+
+	return err
 }
