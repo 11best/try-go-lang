@@ -43,8 +43,8 @@ func main() {
 
 	print("Connection Database Successful!")
 
-	product, err := getProduct(2)
-	fmt.Println("get successful", product)
+	err = updateProduct(3, &Product{Name: "update go", Price: 666})
+	fmt.Println("get successful")
 
 }
 
@@ -73,4 +73,14 @@ func getProduct(id int) (Product, error) {
 	}
 
 	return p, nil
+}
+
+func updateProduct(id int, product *Product) error {
+	_, err := db.Exec(
+		"UPDATE public.products SET name=$2, price=$3 WHERE id=$1;",
+		id,
+		product.Name,
+		product.Price,
+	)
+	return err
 }
